@@ -239,6 +239,7 @@ def main():
     parser.add_argument("-l", "--location", help="Location", required=True)
     parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true')
     parser.add_argument("-e", "--evolved",  help="Only show evolved Pokemon", action='store_true')
+    parser.add_argument("-ev", "--evolved-verbose",  help="Show evolved Pokemon, but also show ignored in one line", action='store_true')
     parser.add_argument("-a", "--alert", help="Places an extra alert around requested PokemonIds or Pokemon Names.", action="append")
     parser.add_argument("-A", "--address", help="Shows the address of the pokemon in addition to the coordinates.", action='store_true')
     parser.add_argument("-L", "--log", help="Enable logging to file", action='store_true')
@@ -250,7 +251,7 @@ def main():
         DEBUG = True
     #     print('[!] DEBUG mode on')
 
-    # if args.evolved:
+    # if args.evolved or args.evolved_verbose:
     #     print("[!] Only tracking evolved Pokemon")
 
     # if args.alert:
@@ -334,13 +335,16 @@ def main():
 
         visible = []
 
-        for hh in hs:
-            for cell in hh.cells:
-                for wild in cell.WildPokemon:
-                    hash = wild.SpawnPointId + ':' + str(wild.pokemon.PokemonId)
-                    if (hash not in seen):
-                        visible.append(wild)
-                        seen.add(hash)
+        try:
+            for hh in hs:
+                for cell in hh.cells:
+                    for wild in cell.WildPokemon:
+                        hash = wild.SpawnPointId + ':' + str(wild.pokemon.PokemonId)
+                        if (hash not in seen):
+                            visible.append(wild)
+                            seen.add(hash)
+        except:
+            continue
 
         # print('')
         # for cell in h.cells:
@@ -356,7 +360,7 @@ def main():
         #             print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
 
         # print('')
-        if args.evolved:
+        if args.evolved or args.evolved_verbose:
             found = False
             skipped_list = []
         for poke in visible:
@@ -370,7 +374,8 @@ def main():
             found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
             if args.log:
                 timestamp = str(datetime.utcnow().strftime("[%Y-%m-%d %H:%M:%S]"))
-                log_message = "%s  %s      \t(%s, %s)" % (timestamp, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
+                log_message = "%s\t%s - %s     \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
+                f.write(log_message + "\n")
 
             if args.address:
                 geolocator = Nominatim()
@@ -385,35 +390,29 @@ def main():
                 print("[+]    =====================================================================")
                 print("")
                 if args.evolved:
-                    found = True
-                if args.log:
-                    f.write(log_message + "\n")
-            elif args.evolved:
+                    found = True     
+            elif args.evolved or args.evolved_verbose:
                 if str(poke.pokemon.PokemonId) in evolvedlist:
                     print(" - " + found_pokemon)
                     if args.address:
                         print(" - Address: %s" % location)
                     found = True
                     print("")
-                    if args.log:
-                        f.write(log_message + "\n")
+
                 else:
                     skipped_list.append(pokemons[poke.pokemon.PokemonId - 1]['Name'])
             else:
                 print(" - " + found_pokemon)                
                 if args.address:
                     print(" - Address: %s" % location)
-                if args.log:
-                    f.write(log_message + "\n")
 
-        # Uncomment this to show missing pokemon
-        if args.evolved:
+        if args.evolved_verbose:
             if not found:
                 print_string = ""
                 for x in skipped_list:
                     print_string += x + ", "
-                print("[-] IGNORED: " + print_string[:-2])
-        ### Add catch if nothing is found "IGNORED: "
+                if print_string[:-2] is not None:
+                    print("[-] IGNORED: " + print_string[:-2])
         # print('')
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
