@@ -176,7 +176,7 @@ def login_ptc(username, password):
     ticket = None
     try:
         ticket = re.sub('.*ticket=', '', r1.history[0].headers['Location'])
-    except e:
+    except Exception as e:
         if DEBUG:
             print(r1.json()['errors'][0])
         return None
@@ -276,13 +276,13 @@ def main():
     access_token = login_ptc(args.username, args.password)
     if access_token is None:
         print('[-] Wrong username/password')
-     #   return
+        return
     #print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
     api_endpoint = get_api_endpoint(access_token)
     if api_endpoint is None:
         print('[-] RPC server offline')
-      #  return
+        return
     #print('[+] Received API endpoint: {}'.format(api_endpoint))
 
     response = get_profile(access_token, api_endpoint, None)
@@ -315,8 +315,11 @@ def main():
         original_long = FLOAT_LONG
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
 
-        while True:
+        for x in range(15):
             h = heartbeat(api_endpoint, access_token, response)
+            if x == 14:
+                print("Connection to the server has been terminated.")
+                return
             try:
                 if "failed" not in h:
                     pass
@@ -374,7 +377,7 @@ def main():
             found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
             if args.log:
                 timestamp = str(datetime.utcnow().strftime("[%Y-%m-%d %H:%M:%S]"))
-                log_message = "%s\t%s - %s      \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
+                log_message = "%s\t%s - %s       \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
                 f.write(log_message + "\n")
 
             if args.address:
