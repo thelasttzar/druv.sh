@@ -419,6 +419,6 @@ def main():
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
         time.sleep(10)
         set_location_coords(next.lat().degrees, next.lng().degrees, 0)
-
+    f.close()
 if __name__ == '__main__':
     main()
