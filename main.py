@@ -241,13 +241,14 @@ def main():
     parser.add_argument("-e", "--evolved",  help="Only show evolved Pokemon", action='store_true')
     parser.add_argument("-a", "--alert", help="Places an extra alert around requested PokemonIds or Pokemon Names.", action="append")
     parser.add_argument("-A", "--address", help="Shows the address of the pokemon in addition to the coordinates.", action='store_true')
+    parser.add_argument("-L", "--log", help="Enable logging to file", action='store_true')
     parser.set_defaults(DEBUG=False)
     args = parser.parse_args()
 
     if args.debug:
         global DEBUG
         DEBUG = True
-        print('[!] DEBUG mode on')
+    #     print('[!] DEBUG mode on')
 
     # if args.evolved:
     #     print("[!] Only tracking evolved Pokemon")
@@ -260,6 +261,13 @@ def main():
 
     if args.alert:
         alertlist = [x for x in args.alert[0].split(',')]
+
+    if args.log:
+        print("[!] Logging has been enabled to the file: history.log")
+        try:
+            f = open("history.log","a+")
+        except:
+            print("[X] Unable to open file for writing")
 
     set_location(args.location)
 
@@ -358,32 +366,45 @@ def main():
             difflat = diff.lat().degrees
             difflng = diff.lng().degrees
             direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
+
+            found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
+            if args.log:
+                timestamp = str(datetime.utcnow().strftime("[%Y-%m-%d %H:%M:%S]"))
+                log_message = "%s  %s      \t(%s, %s)" % (timestamp, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
+
             if args.address:
                 geolocator = Nominatim()
                 location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
+
             if args.alert and str(poke.pokemon.PokemonId) in alertlist:
                 print("")
                 print("[+]    ==========================FOUND A %s============================" % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
-                print("[+]    (%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction))
+                print("[+]    " + found_pokemon)
                 if args.address:
                     print("[+] Address: %s" % location)
                 print("[+]    =====================================================================")
                 print("")
                 if args.evolved:
                     found = True
+                if args.log:
+                    f.write(log_message + "\n")
             elif args.evolved:
                 if str(poke.pokemon.PokemonId) in evolvedlist:
-                    print(" - (%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction))
+                    print(" - " + found_pokemon)
                     if args.address:
                         print(" - Address: %s" % location)
                     found = True
                     print("")
+                    if args.log:
+                        f.write(log_message + "\n")
                 else:
                     skipped_list.append(pokemons[poke.pokemon.PokemonId - 1]['Name'])
             else:
-                print(" - (%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction))
+                print(" - " + found_pokemon)                
                 if args.address:
                     print(" - Address: %s" % location)
+                if args.log:
+                    f.write(log_message + "\n")
 
         # Uncomment this to show missing pokemon
         if args.evolved:
