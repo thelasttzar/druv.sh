@@ -408,11 +408,11 @@ def main():
 
         if args.evolved_verbose:
             if not found:
-                print_string = ""
-                for x in skipped_list:
-                    print_string += x + ", "
-                if print_string[:-2] is not None:
-                    print("[-] IGNORED: " + print_string[:-2])
+                if not not skipped_list: # if it is not empty
+                    print_string = ""
+                    for x in skipped_list:
+                        print_string += x + ", "
+                        print("[-] IGNORED: " + print_string[:-2])
         # print('')
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
