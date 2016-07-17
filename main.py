@@ -412,7 +412,7 @@ def main():
                     print_string = ""
                     for x in skipped_list:
                         print_string += x + ", "
-                        print("[-] IGNORED: " + print_string[:-2])
+                    print("[-] IGNORED: " + print_string[:-2])
         # print('')
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
