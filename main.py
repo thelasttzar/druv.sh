@@ -62,9 +62,7 @@ def h2f(hex):
 def set_location(location_name):
     geolocator = GoogleV3()
     loc = geolocator.geocode(location_name)
-
-    print('[!] Your given location: {}'.format(loc.address.encode('utf-8')))
-    print('[!] lat/long/alt: {} {} {}'.format(loc.latitude, loc.longitude, loc.altitude))
+    print('[!] Location: {}'.format(loc.address.encode('utf-8')) + '{} {}'.format(loc.latitude, loc.longitude))
     set_location_coords(loc.latitude, loc.longitude, loc.altitude)
 
 def set_location_coords(lat, long, alt):
@@ -162,7 +160,7 @@ def get_api_endpoint(access_token, api = API_URL):
 
 
 def login_ptc(username, password):
-    print('[!] login for: {}'.format(username))
+    print('[!] User: {}'.format(username))
     head = {'User-Agent': 'niantic'}
     r = SESSION.get(LOGIN_URL, headers=head)
     jdata = json.loads(r.content)
@@ -251,14 +249,14 @@ def main():
         DEBUG = True
         print('[!] DEBUG mode on')
 
-    if args.evolved:
-        print("[!] Only tracking evolved Pokemon")
+    # if args.evolved:
+    #     print("[!] Only tracking evolved Pokemon")
 
-    if args.alert:
-        print("[!] Placing alerts on requested Pokemon")
+    # if args.alert:
+    #     print("[!] Placing alerts on requested Pokemon")
 
-    if args.address:
-        print("[!] Showing the Address of located pokemon")
+    # if args.address:
+    #     print("[!] Showing the Address of located pokemon")
 
     if args.alert:
         alertlist = [x for x in args.alert[0].split(',')]
