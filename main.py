@@ -374,13 +374,20 @@ def main():
             found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
             if args.log:
                 timestamp = str(datetime.utcnow().strftime("[%Y-%m-%d %H:%M:%S]"))
-                log_message = "%s\t%s - %s     \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
+                log_message = "%s\t%s - %s      \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
                 f.write(log_message + "\n")
 
             if args.address:
-                geolocator = Nominatim()
-                location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
-
+                try:
+                    geolocator = Nominatim()
+                    location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
+                except:
+                    try:
+                        time.sleep(5)
+                        geolocator = Nominatim()
+                        location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
+                    except:
+                        location = "Could not connect to geolocator. Address unavailable"
             if args.alert and str(poke.pokemon.PokemonId) in alertlist:
                 print("")
                 print("[+]    ==========================FOUND A %s============================" % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
