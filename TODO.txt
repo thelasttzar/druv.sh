@@ -1,0 +1,6 @@
+removed evolved
+set google auth default
+set history to json
+add debug levels
+use config.json
+modularize login code 
