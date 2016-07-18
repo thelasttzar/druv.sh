@@ -66,7 +66,7 @@ def h2f(hex):
 def set_location(location_name):
     geolocator = GoogleV3()
     loc = geolocator.geocode(location_name)
-    print('[!] Location: {}'.format(loc.address.encode('utf-8')) + ' {} {}'.format(loc.latitude, loc.longitude))
+    print('[*] Location: {}'.format(loc.address.encode('utf-8')) + ' {} {}'.format(loc.latitude, loc.longitude))
     set_location_coords(loc.latitude, loc.longitude, loc.altitude)
 
 def set_location_coords(lat, long, alt):
@@ -164,7 +164,7 @@ def get_api_endpoint(service, access_token, api = API_URL):
 
 
 def login_google(username, password):
-    print('[!] Google user: {}'.format(username))
+    print('[+] Google User: {}'.format(username))
     ANDROID_ID = '9774d56d682e549c'
     SERVICE= 'audience:server:client_id:848232511240-7so421jotr2609rmqakceuu1luuq0ptb.apps.googleusercontent.com'
     APP = 'com.nianticlabs.pokemongo'
@@ -265,26 +265,26 @@ def main():
     if args.debug:
         global DEBUG
         DEBUG = True
-    #     print('[!] DEBUG mode on')
+        print('[*] Debug Mode Enabled')
 
-    # if args.evolved or args.evolved_verbose:
-    #     print("[!] Only tracking evolved Pokemon")
+    if args.evolved or args.evolved_verbose:
+        print("[*] Tracking: Evolved Only")
 
-    # if args.alert:
-    #     print("[!] Placing alerts on requested Pokemon")
+    if args.alert:
+        print("[*] Alerts: Enabled")
 
-    # if args.address:
-    #     print("[!] Showing the Address of located pokemon")
+    if args.address:
+        print("[*] Address Format: Enabled")
 
     if args.alert:
         alertlist = [x for x in args.alert[0].split(',')]
 
     if args.log:
-        print("[!] Logging has been enabled to the file: history.log")
+        print("[*] Logging: Enabled - history.log")
         try:
             f = open("history.log","a+")
         except:
-            print("[X] Unable to open file for writing")
+            print("[-] Unable to Write Log")
 
     set_location(args.location)
 
@@ -298,40 +298,40 @@ def main():
     if access_token is None:
         print('[-] Wrong username/password')
         return
-    #print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
+    print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
     api_endpoint = get_api_endpoint(service, access_token)
     if api_endpoint is None:
-        print('[-] RPC server offline')
+        print('[-] RPC Server Offline')
         return
-    #print('[+] Received API endpoint: {}'.format(api_endpoint))
+    print('[+] Received API Endpoint: {}'.format(api_endpoint))
 
     response = get_profile(service, access_token, api_endpoint, None)
     if response is not None:
-       # print('[+] Login successful')
+        #print('[+] Login Successful')
 
         payload = response.payload[0]
         profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
         profile.ParseFromString(payload)
-        #print('[+] Username: {}'.format(profile.profile.username))
+        print('[+] Username: {}'.format(profile.profile.username))
 
         creation_time = datetime.fromtimestamp(int(profile.profile.creation_time)/1000)
-        #print('[+] You are playing Pokemon Go since: {}'.format(
-         #   creation_time.strftime('%Y-%m-%d %H:%M:%S'),
-        #))
+        print('[+] Character Creation: {}'.format(
+            creation_time.strftime('%Y-%m-%d %H:%M:%S'),
+        ))
 
         for curr in profile.profile.currency:
             print('[+] {}: {}'.format(curr.type, curr.amount))
     else:
-        print('[-] Ooops...')
+        print('[-] Login Error')
 
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
     while True:
         #All Evolved
-        #evolvedlist = ['2','3','5','6','8','9','11','12','14','15','17','18','20','22','24','26','28','30','31','33','34','36','38','40','42','44','45','47','49','51','53','55','57','59','61','62','64','65','67','68','70','71','73','75','76','78','80','82','85','87','89','91','93','94','97','99','101','103','105','107','110','112','117','119','121','130','134','135','136','139','141','149']
+        evolvedlist = ['2','3','5','6','8','9','11','12','14','15','17','18','20','22','24','26','28','30','31','33','34','36','38','40','42','44','45','47','49','51','53','55','57','59','61','62','64','65','67','68','70','71','73','75','76','78','80','82','85','87','89','91','93','94','97','99','101','103','105','107','110','112','117','119','121','130','134','135','136','139','141','149']
        
         #No Pidgeotto, Raticate, Kakuna, Metapod
-        evolvedlist = ['2','3','5','6','8','9','12','15','18','22','24','26','28','30','31','33','34','36','38','40','42','44','45','47','49','51','53','55','57','59','61','62','64','65','67','68','70','71','73','75','76','78','80','82','85','87','89','91','93','94','97','99','101','103','105','107','110','112','117','119','121','130','134','135','136','139','141','149']        
+        #evolvedlist = ['2','3','5','6','8','9','12','15','18','22','24','26','28','30','31','33','34','36','38','40','42','44','45','47','49','51','53','55','57','59','61','62','64','65','67','68','70','71','73','75','76','78','80','82','85','87','89','91','93','94','97','99','101','103','105','107','110','112','117','119','121','130','134','135','136','139','141','149']        
         original_lat = FLOAT_LAT
         original_long = FLOAT_LONG
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
@@ -339,7 +339,7 @@ def main():
         for x in range(16):
             h = heartbeat(service, api_endpoint, access_token, response)
             if x == 15:
-                print("Connection to the server has been terminated.")
+                print("Connection Terminated")
                 return
             try:
                 if "failed" not in h:
@@ -347,7 +347,7 @@ def main():
             except:
                 break
             else:
-                print("Error with connection to server. Retrying in 5 seconds. Attempt: %d" % x)
+                print("Connetion Error: Retrying in 5 seconds... Attempt: %d" % x)
                 time.sleep(5)
         hs = [h]
         seen = set([])
@@ -411,7 +411,7 @@ def main():
                         geolocator = Nominatim()
                         location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
                     except:
-                        location = "Could not connect to geolocator. Address unavailable"
+                        location = "GeoLocator Connection Timed Out"
             if args.alert and str(poke.pokemon.PokemonId) in alertlist:
                 print("")
                 print("[+]    ==========================FOUND A %s============================" % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
@@ -443,7 +443,7 @@ def main():
                     print_string = ""
                     for x in skipped_list:
                         print_string += x + ", "
-                    print("[-] IGNORED: " + print_string[:-2])
+                    print("[I] : " + print_string[:-2])
         # print('')
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
