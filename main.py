@@ -9,6 +9,7 @@ import time
 
 from google.protobuf.internal import encoder
 
+from gpsoauth import perform_master_login, perform_oauth
 from datetime import datetime
 from geopy.geocoders import GoogleV3, Nominatim
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -50,6 +51,9 @@ COORDS_ALTITUDE = 0
 FLOAT_LAT = 0
 FLOAT_LONG = 0
 
+
+
+
 def f2i(float):
   return struct.unpack('<Q', struct.pack('<d', float))[0]
 
@@ -77,7 +81,7 @@ def set_location_coords(lat, long, alt):
 def get_location_coords():
     return (COORDS_LATITUDE, COORDS_LONGITUDE, COORDS_ALTITUDE)
 
-def api_req(api_endpoint, access_token, *mehs, **kw):
+def api_req(service, api_endpoint, access_token, *mehs, **kw):
     try:
         p_req = pokemon_pb2.RequestEnvelop()
         p_req.rpc_id = 1469378659230941192
@@ -89,7 +93,7 @@ def api_req(api_endpoint, access_token, *mehs, **kw):
         p_req.unknown12 = 989
 
         if 'useauth' not in kw or not kw['useauth']:
-            p_req.auth.provider = 'ptc'
+            p_req.auth.provider = service
             p_req.auth.token.contents = access_token
             p_req.auth.token.unknown13 = 14
         else:
@@ -121,7 +125,7 @@ def api_req(api_endpoint, access_token, *mehs, **kw):
             print(e)
         return None
 
-def get_profile(access_token, api, useauth, *reqq):
+def get_profile(service, access_token, api, useauth, *reqq):
     req = pokemon_pb2.RequestEnvelop()
 
     req1 = req.requests.add()
@@ -149,18 +153,28 @@ def get_profile(access_token, api, useauth, *reqq):
     if len(reqq) >= 5:
         req5.MergeFrom(reqq[4])
 
-    return api_req(api, access_token, req, useauth = useauth)
+    return api_req(service, api, access_token, req, useauth = useauth)
 
-def get_api_endpoint(access_token, api = API_URL):
-    p_ret = get_profile(access_token, api, None)
+def get_api_endpoint(service, access_token, api = API_URL):
+    p_ret = get_profile(service, access_token, api, None)
     try:
         return ('https://%s/rpc' % p_ret.api_url)
     except:
         return None
 
 
+def login_google(username, password):
+    print('[!] Google user: {}'.format(username))
+    ANDROID_ID = '9774d56d682e549c'
+    SERVICE= 'audience:server:client_id:848232511240-7so421jotr2609rmqakceuu1luuq0ptb.apps.googleusercontent.com'
+    APP = 'com.nianticlabs.pokemongo'
+    CLIENT_SIG = '321187995bc7cdc2b5fc91b11a96e2baa8602c62'
+    r1 = perform_master_login(username, password, ANDROID_ID)
+    r2 = perform_oauth(username, r1.get('Token', ''), ANDROID_ID, SERVICE, APP, CLIENT_SIG)
+    return r2.get('Auth') # access token
+
 def login_ptc(username, password):
-    print('[!] User: {}'.format(username))
+    print('[!] PTC User: {}'.format(username))
     head = {'User-Agent': 'niantic'}
     r = SESSION.get(LOGIN_URL, headers=head)
     jdata = json.loads(r.content)
@@ -193,7 +207,7 @@ def login_ptc(username, password):
     access_token = re.sub('.*access_token=', '', access_token)
     return access_token
 
-def heartbeat(api_endpoint, access_token, response):
+def heartbeat(service, api_endpoint, access_token, response):
     m4 = pokemon_pb2.RequestEnvelop.Requests()
     m = pokemon_pb2.RequestEnvelop.MessageSingleInt()
     m.f1 = int(time.time() * 1000)
@@ -213,7 +227,8 @@ def heartbeat(api_endpoint, access_token, response):
     m.lat = COORDS_LATITUDE
     m.long = COORDS_LONGITUDE
     m1.message = m.SerializeToString()
-    response = get_profile(
+    response = get_profile( 
+        service,
         access_token,
         api_endpoint,
         response.unknown7,
@@ -224,7 +239,7 @@ def heartbeat(api_endpoint, access_token, response):
         m5)
     try:
         payload = response.payload[0]
-    except:
+    except Exception as e:
         return("failed")
     else:
         heartbeat = pokemon_pb2.ResponseEnvelop.HeartbeatPayload()
@@ -243,6 +258,7 @@ def main():
     parser.add_argument("-a", "--alert", help="Places an extra alert around requested PokemonIds or Pokemon Names.", action="append")
     parser.add_argument("-A", "--address", help="Shows the address of the pokemon in addition to the coordinates.", action='store_true')
     parser.add_argument("-L", "--log", help="Enable logging to file", action='store_true')
+    parser.add_argument("-g", "--google-auth", help="Uses Google auth instead of PTC", action='store_true')
     parser.set_defaults(DEBUG=False)
     args = parser.parse_args()
 
@@ -272,20 +288,25 @@ def main():
 
     set_location(args.location)
 
+    service = "ptc"
+    if args.google_auth:
+        service = "google"
+        access_token = login_google(args.username, args.password)
+    else:
+        access_token = login_ptc(args.username, args.password)
 
-    access_token = login_ptc(args.username, args.password)
     if access_token is None:
         print('[-] Wrong username/password')
         return
     #print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
-    api_endpoint = get_api_endpoint(access_token)
+    api_endpoint = get_api_endpoint(service, access_token)
     if api_endpoint is None:
         print('[-] RPC server offline')
         return
     #print('[+] Received API endpoint: {}'.format(api_endpoint))
 
-    response = get_profile(access_token, api_endpoint, None)
+    response = get_profile(service, access_token, api_endpoint, None)
     if response is not None:
        # print('[+] Login successful')
 
@@ -315,9 +336,9 @@ def main():
         original_long = FLOAT_LONG
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
 
-        for x in range(15):
-            h = heartbeat(api_endpoint, access_token, response)
-            if x == 14:
+        for x in range(16):
+            h = heartbeat(service, api_endpoint, access_token, response)
+            if x == 15:
                 print("Connection to the server has been terminated.")
                 return
             try:
@@ -326,14 +347,14 @@ def main():
             except:
                 break
             else:
-                print("Error with connection to server. Retrying in 5 seconds.")
+                print("Error with connection to server. Retrying in 5 seconds. Attempt: %d" % x)
                 time.sleep(5)
         hs = [h]
         seen = set([])
         for child in parent.children():
             latlng = LatLng.from_point(Cell(child).get_center())
             set_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
-            hs.append(heartbeat(api_endpoint, access_token, response))
+            hs.append(heartbeat(service, api_endpoint, access_token, response))
         set_location_coords(original_lat, original_long, 0)
 
         visible = []
