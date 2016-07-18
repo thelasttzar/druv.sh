@@ -4,3 +4,4 @@ set history to json
 add debug levels
 use config.json
 modularize login code 
+fix ignored not being shown if there is at least 1 evolved in the scan
