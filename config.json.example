@@ -4,5 +4,7 @@
     "password": "password11!!",
     "location": "New York",
     "debug": true,
-    "client_secret": "000000000000000000"
+    "client_secret": "000000000000000000",
+    "alerts": "149",
+    "logging": true
 }
