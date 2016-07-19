@@ -291,7 +291,7 @@ def scan():
             alertstring = ""
             for x in alertlist:
                 alertstring += pokefile[int(x) - 1]['Name'] + ", "
-        print("[*] Alerts enabled for: %s" % alertstring[:-2])
+        print("[*] Alerts Enabled: %s" % alertstring[:-2])
     else:
         alert = False
 
@@ -328,7 +328,7 @@ def scan():
         return
 
     if access_token is None:
-        print('[-] Unable to Log In')
+        print('[-] Log In Failed: Retrying in 60 Seconds...')
         time.sleep(60)
         return
     print('[+] RPC Token Assigned: %s' % (access_token[:25]))
