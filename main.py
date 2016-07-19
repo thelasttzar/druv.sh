@@ -6,6 +6,8 @@ import json
 import argparse
 import pokemon_pb2
 import time
+import os
+import sys
 
 from google.protobuf.internal import encoder
 
@@ -15,6 +17,7 @@ from geopy.geocoders import GoogleV3, Nominatim
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
+from adb_android import adb_android as adb
 
 def encode(cellid):
     output = []
@@ -259,8 +262,11 @@ def main():
     parser.add_argument("-A", "--address", help="Shows the address of the pokemon in addition to the coordinates.", action='store_true')
     parser.add_argument("-L", "--log", help="Enable logging to file", action='store_true')
     parser.add_argument("-g", "--google-auth", help="Uses Google auth instead of PTC", action='store_true')
+    parser.add_argument("-t", "--teleport", help="Uses adb to teleport you to the location of alerts", action='store_true')
     parser.set_defaults(DEBUG=False)
     args = parser.parse_args()
+
+    print("")
 
     if args.debug:
         global DEBUG
@@ -285,6 +291,11 @@ def main():
             f = open("history.log","a+")
         except:
             print("[-] Unable to Write Log")
+
+    if args.teleport:
+        print("[*] Teleporting: Enabled")
+
+    print("")
 
     set_location(args.location)
 
@@ -336,9 +347,9 @@ def main():
         original_long = FLOAT_LONG
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
 
-        for x in range(16):
+        for x in range(6):
             h = heartbeat(service, api_endpoint, access_token, response)
-            if x == 15:
+            if x == 5:
                 print("Connection Terminated")
                 return
             try:
@@ -347,7 +358,7 @@ def main():
             except:
                 break
             else:
-                print("Connetion Error: Retrying in 5 seconds... Attempt: %d" % x)
+                print("Connection Error: Retrying in 5 seconds... Attempt: %d" % (x+1))
                 time.sleep(5)
         hs = [h]
         seen = set([])
@@ -385,7 +396,6 @@ def main():
 
         # print('')
         if args.evolved or args.evolved_verbose:
-            found = False
             skipped_list = []
         for poke in visible:
             other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
@@ -419,15 +429,27 @@ def main():
                 if args.address:
                     print("[+] Address: %s" % location)
                 print("[+]    =====================================================================")
+
+                #code to teleport you to the target
+                if args.teleport:    
+
+                    #stops the shitty method from printing to stdout. 
+                    sys.stdout=open(os.devnull,"w")
+
+                    #starts fakegps service to teleport you
+
+                    cmd = adb.shell("am startservice -a com.incorporateapps.fakegps.ENGAGE --ef lat %s --ef lng %s" % (poke.Latitude, poke.Longitude) )
+
+                    #restore stdout 
+                    sys.stdout=sys.__stdout__
+                    print("Teleporting you to (%s, %s)" % (poke.Latitude, poke.Longitude))
                 print("")
-                if args.evolved:
-                    found = True     
+
             elif args.evolved or args.evolved_verbose:
                 if str(poke.pokemon.PokemonId) in evolvedlist:
                     print(" - " + found_pokemon)
                     if args.address:
                         print(" - Address: %s" % location)
-                    found = True
                     print("")
 
                 else:
@@ -438,12 +460,11 @@ def main():
                     print(" - Address: %s" % location)
 
         if args.evolved_verbose:
-            if not found:
-                if not not skipped_list: # if it is not empty
-                    print_string = ""
-                    for x in skipped_list:
-                        print_string += x + ", "
-                    print("[I] " + print_string[:-2])
+            if not not skipped_list: # if it is not empty
+                print_string = ""
+                for x in skipped_list:
+                    print_string += x + ", "
+                print("[I] " + print_string[:-2])
         # print('')
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
