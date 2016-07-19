@@ -285,13 +285,6 @@ def main():
     if args.alert:
         alertlist = [x for x in args.alert[0].split(',')]
 
-    if args.log:
-        print("[*] Logging: Enabled - history.log")
-        try:
-            f = open("history.log","a+")
-        except:
-            print("[-] Unable to Write Log")
-
     if args.teleport:
         print("[*] Teleporting: Enabled")
 
