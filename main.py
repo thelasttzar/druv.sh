@@ -8,7 +8,7 @@ import pokemon_pb2
 import time
 import os
 import sys
-
+from ConfigParser import ConfigParser
 from google.protobuf.internal import encoder
 
 from gpsoauth import perform_master_login, perform_oauth
@@ -18,6 +18,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
 from adb_android import adb_android as adb
+
 
 def encode(cellid):
     output = []
@@ -251,66 +252,93 @@ def heartbeat(service, api_endpoint, access_token, response):
 
 def main():
     pokemons = json.load(open('pokemon.json'))
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-u", "--username", help="PTC Username", required=True)
-    parser.add_argument("-p", "--password", help="PTC Password", required=True)
-    parser.add_argument("-l", "--location", help="Location", required=True)
-    parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true')
-    parser.add_argument("-e", "--evolved",  help="Only show evolved Pokemon", action='store_true')
-    parser.add_argument("-ev", "--evolved-verbose",  help="Show evolved Pokemon, but also show ignored in one line", action='store_true')
-    parser.add_argument("-a", "--alert", help="Places an extra alert around requested PokemonIds or Pokemon Names.", action="append")
-    parser.add_argument("-A", "--address", help="Shows the address of the pokemon in addition to the coordinates.", action='store_true')
-    parser.add_argument("-L", "--log", help="Enable logging to file", action='store_true')
-    parser.add_argument("-g", "--google-auth", help="Uses Google auth instead of PTC", action='store_true')
-    parser.add_argument("-t", "--teleport", help="Uses adb to teleport you to the location of alerts", action='store_true')
-    parser.set_defaults(DEBUG=False)
-    args = parser.parse_args()
+    config = ConfigParser()
+    config.read('pokemon.cfg')
+
+    # Login settings
+    username = config.get('Login','username')
+    password = config.get('Login','password')
+    auth_service = config.get('Login','auth_service')
+    location = config.get('Login','location')
+
+    # Program settings
+    alert=config.get('Settings','alert')
+    debug=config.get('Settings','debug')
+    evolved=config.get('Settings','evolved')
+    evolved_verbose=config.get('Settings','evolved_verbose')
+    address=config.get('Settings','address')
+    logging=config.get('Settings','logging')
+    teleport=config.get('Settings','teleport')
 
     print("")
 
-    if args.debug:
-        global DEBUG
+    global DEBUG
+    DEBUG= False
+
+    if debug.lower() in ["yes", "true", "t", "1"]:
         DEBUG = True
         print('[*] Debug Mode Enabled')
 
-    if args.evolved or args.evolved_verbose:
+
+
+    if evolved.lower() in ["yes", "true", "t", "1"]:
         print("[*] Tracking: Evolved Only")
+    else:
+        evolved = False
 
-    if args.alert:
+    if evolved_verbose.lower() in ["yes", "true", "t", "1"]:
+        print("[*] Tracking: Evolved Only")
+    else:
+        evolved_verbose = False
+
+    if alert.lower() in ["yes", "true", "t", "1"]:
         print("[*] Alerts: Enabled")
+        alertlist = [x for x in alert[0].split(',')]
+    else:
+        alert = False
 
-    if args.address:
+    if address.lower() in ["yes", "true", "t", "1"]:
         print("[*] Address Format: Enabled")
+    else:
+        address = False
 
-    if args.alert:
-        alertlist = [x for x in args.alert[0].split(',')]
+    if logging.lower() in ["yes", "true", "t", "1"]:
+        print("[*] Logging: Enabled - history.json")
+    else:
+        logging = False
 
-    if args.teleport:
+    if teleport.lower() in ["yes", "true", "t", "1"]:
         print("[*] Teleporting: Enabled")
+    else:
+        teleport = False
 
     print("")
 
-    set_location(args.location)
+    set_location(location)
 
-    service = "ptc"
-    if args.google_auth:
-        service = "google"
-        access_token = login_google(args.username, args.password)
+
+
+    if auth_service in ['ptc','google']:
+        if auth_service == 'google':
+            access_token = login_google(username, password)
+        else:
+            access_token = login_ptc(username, password)
     else:
-        access_token = login_ptc(args.username, args.password)
+        print("[X] Invalid auth service selected. Please use either 'google' or 'ptc' ")
+        return
 
     if access_token is None:
         print('[-] Wrong username/password')
         return
     print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
-    api_endpoint = get_api_endpoint(service, access_token)
+    api_endpoint = get_api_endpoint(auth_service, access_token)
     if api_endpoint is None:
         print('[-] RPC Server Offline')
         return
     print('[+] Received API Endpoint: {}'.format(api_endpoint))
 
-    response = get_profile(service, access_token, api_endpoint, None)
+    response = get_profile(auth_service, access_token, api_endpoint, None)
     if response is not None:
         #print('[+] Login Successful')
 
@@ -341,7 +369,7 @@ def main():
         parent = CellId.from_lat_lng(LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)).parent(15)
 
         for x in range(6):
-            h = heartbeat(service, api_endpoint, access_token, response)
+            h = heartbeat(auth_service, api_endpoint, access_token, response)
             if x == 5:
                 print("Connection Terminated")
                 return
@@ -358,7 +386,7 @@ def main():
         for child in parent.children():
             latlng = LatLng.from_point(Cell(child).get_center())
             set_location_coords(latlng.lat().degrees, latlng.lng().degrees, 0)
-            hs.append(heartbeat(service, api_endpoint, access_token, response))
+            hs.append(heartbeat(auth_service, api_endpoint, access_token, response))
         set_location_coords(original_lat, original_long, 0)
 
         visible = []
@@ -388,7 +416,7 @@ def main():
         #             print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
 
         # print('')
-        if args.evolved or args.evolved_verbose:
+        if evolved or evolved_verbose:
             skipped_list = []
         for poke in visible:
             other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
@@ -399,12 +427,15 @@ def main():
             direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
 
             found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
-            if args.log:
+            if logging:
                 timestamp = int(time.time())
-                with open("history.json","a+") as file:
-                    json.dump({'PokemonID':poke.pokemon.PokemonId, 'Pokemon Name':pokemons[poke.pokemon.PokemonId - 1]['Name'], "Coordinates":{"X":poke.Latitude, "Y":poke.Longitude}, "Timestamp":timestamp}, file, indent=4)
+                try:
+                    with open("history.json","a+") as file:
+                        json.dump({'PokemonID':str(poke.pokemon.PokemonId), 'Pokemon Name':pokemons[poke.pokemon.PokemonId - 1]['Name'], "Coordinates":{"X":poke.Latitude, "Y":poke.Longitude}, "Timestamp":timestamp}, file, indent=4)
+                except:
+                    print("Log file could not be opened")
 
-            if args.address:
+            if address:
                 try:
                     geolocator = Nominatim()
                     location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
@@ -415,16 +446,16 @@ def main():
                         location = geolocator.reverse("%s, %s" % (poke.Latitude, poke.Longitude))
                     except:
                         location = "GeoLocator Connection Timed Out"
-            if args.alert and str(poke.pokemon.PokemonId) in alertlist:
+            if alert and str(poke.pokemon.PokemonId) in alertlist:
                 print("")
                 print("[+]    ==========================FOUND A %s============================" % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
                 print("[+]    " + found_pokemon)
-                if args.address:
+                if address:
                     print("[+] Address: %s" % location)
                 print("[+]    =====================================================================")
 
                 #code to teleport you to the target
-                if args.teleport:    
+                if teleport:    
 
                     #stops the shitty method from printing to stdout. 
                     sys.stdout=open(os.devnull,"w")
@@ -438,10 +469,10 @@ def main():
                     print("Teleporting you to (%s, %s)" % (poke.Latitude, poke.Longitude))
                 print("")
 
-            elif args.evolved or args.evolved_verbose:
+            elif evolved or evolved_verbose:
                 if str(poke.pokemon.PokemonId) in evolvedlist:
                     print(" - " + found_pokemon)
-                    if args.address:
+                    if address:
                         print(" - Address: %s" % location)
                     print("")
 
@@ -449,10 +480,10 @@ def main():
                     skipped_list.append(pokemons[poke.pokemon.PokemonId - 1]['Name'])
             else:
                 print(" - " + found_pokemon)                
-                if args.address:
+                if address:
                     print(" - Address: %s" % location)
 
-        if args.evolved_verbose:
+        if evolved_verbose:
             if not not skipped_list: # if it is not empty
                 print_string = ""
                 for x in skipped_list:
