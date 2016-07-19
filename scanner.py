@@ -70,7 +70,7 @@ def h2f(hex):
 def set_location(location_name):
     geolocator = GoogleV3()
     loc = geolocator.geocode(location_name)
-    print('[*] Location: {}'.format(loc.address.encode('utf-8')) + ' {} {}'.format(loc.latitude, loc.longitude))
+    print('[*] Location: %s  (%s, %s)' % (loc.address.encode('utf-8'), loc.latitude, loc.longitude))
     set_location_coords(loc.latitude, loc.longitude, loc.altitude)
 
 def set_location_coords(lat, long, alt):
@@ -169,7 +169,7 @@ def get_api_endpoint(service, access_token, api = API_URL):
         return None
 
 def login_google(username, password):
-    print('[+] Google User: {}'.format(username))
+    print('[+] Google User: %s' % username)
     ANDROID_ID = '9774d56d682e549c'
     SERVICE= 'audience:server:client_id:848232511240-7so421jotr2609rmqakceuu1luuq0ptb.apps.googleusercontent.com'
     APP = 'com.nianticlabs.pokemongo'
@@ -179,7 +179,7 @@ def login_google(username, password):
     return r2.get('Auth') # access token
 
 def login_ptc(username, password):
-    print('[!] PTC User: {}'.format(username))
+    print('[!] PTC User: %s' % username)
     head = {'User-Agent': 'niantic'}
     r = SESSION.get(LOGIN_URL, headers=head)
     jdata = json.loads(r.content)
@@ -268,6 +268,7 @@ def scan():
     address=config.get('Login1','address')
     logging=config.get('Login1','logging')
     teleport=config.get('Login1','teleport')
+    sounds=config.get('Login1','sounds')
 
     print("")
 
@@ -302,6 +303,11 @@ def scan():
     else:
         teleport = False
 
+    if sounds:
+        soundfile = config.get('Login1','soundfile')
+        print("[*] Sounds: Enabled")
+    else:
+        sounds = False
     print("")
 
     set_location(location)
@@ -318,13 +324,13 @@ def scan():
     if access_token is None:
         print('[-] Wrong username/password')
         return
-    print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
+    print('[+] RPC Session Token: %s ...' % (access_token[:25]))
 
     api_endpoint = get_api_endpoint(auth_service, access_token)
     if api_endpoint is None:
         print('[-] RPC Server Offline')
         return
-    print('[+] Received API Endpoint: {}'.format(api_endpoint))
+    print('[+] Received API Endpoint: %s' % api_endpoint)
 
     response = get_profile(auth_service, access_token, api_endpoint, None)
     if response is not None:
@@ -333,15 +339,13 @@ def scan():
         payload = response.payload[0]
         profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
         profile.ParseFromString(payload)
-        print('[+] Username: {}'.format(profile.profile.username))
+        print('[+] Username: %s ' % profile.profile.username)
 
         creation_time = datetime.fromtimestamp(int(profile.profile.creation_time)/1000)
-        print('[+] Character Creation: {}'.format(
-            creation_time.strftime('%Y-%m-%d %H:%M:%S'),
-        ))
+        print('[+] Character Creation: %s' % creation_time.strftime('%Y-%m-%d %H:%M:%S'))
 
         for curr in profile.profile.currency:
-            print('[+] {}: {}'.format(curr.type, curr.amount))
+            print('[+] %s: %s' % (curr.type, curr.amount))
     else:
         print('[-] Login Error')
 
@@ -436,7 +440,8 @@ def scan():
 
                     #starts fakegps service to teleport you
                     adb.shell("am startservice -a com.incorporateapps.fakegps.ENGAGE --ef lat %s --ef lng %s" % (poke.Latitude, poke.Longitude) )
-                    adb.shell("am start -a android.intent.action.VIEW -d file:///storage/emulated/0/Ring02.wav -t audio/wav")
+                    if sounds:
+                        adb.shell("am start -a android.intent.action.VIEW -d file://%s -t audio/wav" % soundfile)
                     #restore stdout 
                     sys.stdout=sys.__stdout__
                     print("Teleporting you to (%s, %s)" % (poke.Latitude, poke.Longitude))
