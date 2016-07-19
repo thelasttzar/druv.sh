@@ -285,6 +285,13 @@ def scan():
     if alert is not None:
         alerts = [x for x in alert.split(',')]
         alertlist = [ x for x in alerts if x.isdigit() ]
+        
+        with open('pokemon.json','r') as pokemonjson:
+            pokefile = json.load(pokemonjson)
+            alertstring = ""
+            for x in alertlist:
+                alertstring += pokefile[int(x) - 1]['Name'] + ", "
+        print("[*] Alerts enabled for: %s" % alertstring[:-2])
     else:
         alert = False
 
