@@ -329,12 +329,14 @@ def scan():
 
     if access_token is None:
         print('[-] Unable to Log In')
-        sys.exit()
+        time.sleep(60)
+        return
     print('[+] RPC Session Token: %s ...' % (access_token[:25]))
 
     api_endpoint = get_api_endpoint(auth_service, access_token)
     if api_endpoint is None:
         print('[-] RPC Server Offline')
+        time.sleep(60)
         return
     print('[+] Received API Endpoint: %s' % api_endpoint)
 
