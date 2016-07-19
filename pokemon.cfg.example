@@ -31,6 +31,17 @@ address=True
 ; Sets up logging to the file "history.json"
 logging=True
 
+#
+# The following settings require you to be connected to one device via adb
+#
+
 ; Teleport allows you to instantly teleport to the location of pokemon on your alert list
 ; Connect your device to adb and do not have the game open when waiting to teleport
 teleport=True
+
+; Sounds will play a sound file of your choice on your phone when it finds an pokemon on the alert list
+; This will happen at the same time that it is teleporting you, if you have that enabled
+sounds=True
+
+; The location of the sound file on your android device
+soundfile=/storage/emulated/0/Ring02.wav

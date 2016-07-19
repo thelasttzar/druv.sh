@@ -7,7 +7,6 @@ def main():
         try:
             scanner.scan()
         except Exception as e:
-            print(e)
             print("Restarting scanner in 15 seconds.")
             time.sleep(15)
 
