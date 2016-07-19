@@ -338,7 +338,7 @@ def scan():
         print('[-] RPC Server Offline: Retrying in 60 Seconds...')
         time.sleep(60)
         return
-    print('[+] Received API Assigned: %s' % api_endpoint)
+    print('[+] API Endpoint Assigned: %s' % api_endpoint)
 
     response = get_profile(auth_service, access_token, api_endpoint, None)
     if response is not None:
