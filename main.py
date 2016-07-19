@@ -365,6 +365,7 @@ def main():
 
         for x in range(6):
             h = heartbeat(auth_service, api_endpoint, access_token, response)
+            print u'\u2764'
             if x == 5:
                 print("Connection Terminated")
                 return
