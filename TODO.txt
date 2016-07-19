@@ -1,3 +1,5 @@
+add teleport speed limit
+add scan meter max range
 removed evolved
 set google auth default
 set history to json
