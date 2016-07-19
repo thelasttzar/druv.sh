@@ -330,7 +330,7 @@ def scan():
 
     if access_token is None:
         print('[-] Wrong username/password')
-        return
+        sys.exit()
     print('[+] RPC Session Token: %s ...' % (access_token[:25]))
 
     api_endpoint = get_api_endpoint(auth_service, access_token)
