@@ -1,5 +1,6 @@
 add teleport speed limit
 add scan meter max range
+disply adb device info in script when connected
 removed evolved
 set google auth default
 set history to json
