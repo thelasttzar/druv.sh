@@ -407,9 +407,9 @@ def main():
 
             found_pokemon = "(%s) %s is visible at (%s, %s) for %s seconds (%sm %s from you)" % (poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, poke.TimeTillHiddenMs / 1000, int(origin.get_distance(other).radians * 6366468.241830914), direction)
             if args.log:
-                timestamp = str(datetime.utcnow().strftime("[%Y-%m-%d %H:%M:%S]"))
-                log_message = "%s\t%s - %s       \t(%s, %s)" % (timestamp, poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude)
-                f.write(log_message + "\n")
+                timestamp = int(time.time())
+                with open("history.json","a+") as file:
+                    json.dump({'PokemonID':poke.pokemon.PokemonId, 'Pokemon Name':pokemons[poke.pokemon.PokemonId - 1]['Name'], "Coordinates":{"X":poke.Latitude, "Y":poke.Longitude}, "Timestamp":timestamp}, file, indent=4)
 
             if args.address:
                 try:
