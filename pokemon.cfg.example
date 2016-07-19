@@ -3,16 +3,14 @@
 # 
 # auth_service must be either google or ptc
 #
-[Login]
+[Login1]
 username=testuser
 password=testpass
 auth_service=ptc
 location=central park, new york
-
 #
 # Application settings
 #
-[Settings]
 ; Alerts set up extra notifications around the listed pokemon IDs. This should be a comma seperated list without spaces
 ; example: alert=147,148,149 will find dratinis, dragonairs, and dragonites
 alert=
