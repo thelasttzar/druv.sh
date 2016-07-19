@@ -449,7 +449,13 @@ def scan():
                     #starts fakegps service to teleport you
                     adb.shell("am startservice -a com.incorporateapps.fakegps.ENGAGE --ef lat %s --ef lng %s" % (poke.Latitude, poke.Longitude) )
                     if sounds:
-                        adb.shell("am start -a android.intent.action.VIEW -d file://%s -t audio/wav" % soundfile)
+                        try:
+                            adb.shell("am start -a android.intent.action.VIEW -d file://%s -t audio/wav" % soundfile)
+                        except:
+                            pass
+                    time.sleep(2)
+                    adb.shell("monkey -p com.nianticlabs.pokemongo -c android.intent.category.LAUNCHER 1")
+
                     #restore stdout 
                     sys.stdout=sys.__stdout__
                     print("Teleporting to (%s, %s)" % (poke.Latitude, poke.Longitude))
