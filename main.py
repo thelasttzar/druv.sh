@@ -8,6 +8,7 @@ import pokemon_pb2
 import time
 import os
 import sys
+import logging
 from ConfigParser import ConfigParser
 from google.protobuf.internal import encoder
 
@@ -18,6 +19,10 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
 from adb_android import adb_android as adb
+
+###Logging
+logging.basicConfig(filename="debug.log", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def encode(cellid):
@@ -48,7 +53,6 @@ SESSION = requests.session()
 SESSION.headers.update({'User-Agent': 'Niantic App'})
 SESSION.verify = False
 
-DEBUG = False
 COORDS_LATITUDE = 0
 COORDS_LONGITUDE = 0
 COORDS_ALTITUDE = 0
@@ -115,18 +119,18 @@ def api_req(service, api_endpoint, access_token, *mehs, **kw):
         p_ret = pokemon_pb2.ResponseEnvelop()
         p_ret.ParseFromString(r.content)
 
-        if DEBUG:
-            print("REQUEST:")
-            print(p_req)
-            print("Response:")
-            print(p_ret)
-            print("\n\n")
+        # if debug:
+        #     print("REQUEST:")
+        #     print(p_req)
+        #     print("Response:")
+        #     print(p_ret)
+        #     print("\n\n")
 
         time.sleep(2)
         return p_ret
     except Exception, e:
-        if DEBUG:
-            print(e)
+        # if debug:
+        #     print(e)
         return None
 
 def get_profile(service, access_token, api, useauth, *reqq):
@@ -195,8 +199,8 @@ def login_ptc(username, password):
     try:
         ticket = re.sub('.*ticket=', '', r1.history[0].headers['Location'])
     except Exception as e:
-        if DEBUG:
-            print(r1.json()['errors'][0])
+        # if debug:
+        #     print(r1.json()['errors'][0])
         return None
 
     data1 = {
@@ -252,6 +256,7 @@ def heartbeat(service, api_endpoint, access_token, response):
 
 def main():
     pokemons = json.load(open('pokemon.json'))
+
     config = ConfigParser()
     config.read('pokemon.cfg')
 
@@ -270,17 +275,6 @@ def main():
     logging=config.get('Settings','logging')
     teleport=config.get('Settings','teleport')
 
-    print("")
-
-    global DEBUG
-    DEBUG= False
-
-    if debug.lower() in ["yes", "true", "t", "1"]:
-        DEBUG = True
-        print('[*] Debug Mode Enabled')
-
-
-
     if evolved.lower() in ["yes", "true", "t", "1"]:
         print("[*] Tracking: Evolved Only")
     else:
@@ -291,9 +285,11 @@ def main():
     else:
         evolved_verbose = False
 
-    if alert.lower() in ["yes", "true", "t", "1"]:
+    if alert is not None:
+        alerts = [x for x in alert.split(',')]
+        alertlist = [ x for x in alerts if x.isdigit() ]
         print("[*] Alerts: Enabled")
-        alertlist = [x for x in alert[0].split(',')]
+
     else:
         alert = False
 
@@ -302,18 +298,17 @@ def main():
     else:
         address = False
 
-    if logging.lower() in ["yes", "true", "t", "1"]:
+    if logging.lower() == "true":
+        logging = True
         print("[*] Logging: Enabled - history.json")
     else:
         logging = False
 
-    if teleport.lower() in ["yes", "true", "t", "1"]:
+    if teleport.lower() == "true":
+        teleport = True
         print("[*] Teleporting: Enabled")
     else:
         teleport = False
-
-    print("")
-
     set_location(location)
 
 
@@ -340,7 +335,7 @@ def main():
 
     response = get_profile(auth_service, access_token, api_endpoint, None)
     if response is not None:
-        #print('[+] Login Successful')
+        print('[+] Login Successful')
 
         payload = response.payload[0]
         profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
@@ -402,26 +397,11 @@ def main():
         except:
             continue
 
-        # print('')
-        # for cell in h.cells:
-        #     if cell.NearbyPokemon:
-        #         other = LatLng.from_point(Cell(CellId(cell.S2CellId)).get_center())
-        #         diff = other - origin
-        #         # print(diff)
-        #         difflat = diff.lat().degrees
-        #         difflng = diff.lng().degrees
-        #         direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
-        #         print("Within one step of %s (%sm %s from you):" % (other, int(origin.get_distance(other).radians * 6366468.241830914), direction))
-        #         for poke in cell.NearbyPokemon:
-        #             print('    (%s) %s' % (poke.PokedexNumber, pokemons[poke.PokedexNumber - 1]['Name']))
-
-        # print('')
         if evolved or evolved_verbose:
             skipped_list = []
         for poke in visible:
             other = LatLng.from_degrees(poke.Latitude, poke.Longitude)
             diff = other - origin
-            # print(diff)
             difflat = diff.lat().degrees
             difflng = diff.lng().degrees
             direction = (('N' if difflat >= 0 else 'S') if abs(difflat) > 1e-4 else '')  + (('E' if difflng >= 0 else 'W') if abs(difflng) > 1e-4 else '')
@@ -489,7 +469,7 @@ def main():
                 for x in skipped_list:
                     print_string += x + ", "
                 print("[I] " + print_string[:-2])
-        # print('')
+
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
         time.sleep(10)
