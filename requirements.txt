@@ -4,3 +4,4 @@ protobuf==2.6.1
 pycryptodomex==3.4.2
 requests==2.10.0
 s2sphere==0.2.4
+adb_android==1.1
