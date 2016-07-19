@@ -7,8 +7,8 @@ def main():
         try:
             scanner.scan()
         except Exception as e:
-            print("Restarting scanner in 15 seconds.")
-            time.sleep(15)
+            print("Restarting scanner in 60 seconds.")
+            time.sleep(60)
 
 if __name__ == '__main__':
     main()
