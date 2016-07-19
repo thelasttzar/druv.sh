@@ -3,7 +3,7 @@ import scanner
 import time
 
 def main():
-    while True:
+    for t in range(20):
         try:
             scanner.scan()
         except Exception as e:
