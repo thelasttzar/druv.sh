@@ -182,7 +182,7 @@ def login_google(username, password):
     return r2.get('Auth') # access token
 
 def login_ptc(username, password):
-    print('[!] PTC User: {}'.format(username))
+    print('[*] PTC User: {}'.format(username))
     head = {'User-Agent': 'niantic'}
     r = SESSION.get(LOGIN_URL, headers=head)
     jdata = json.loads(r.content)
@@ -335,8 +335,6 @@ def main():
 
     response = get_profile(auth_service, access_token, api_endpoint, None)
     if response is not None:
-        print('[+] Login Successful')
-
         payload = response.payload[0]
         profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
         profile.ParseFromString(payload)
