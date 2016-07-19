@@ -3,4 +3,5 @@ add scan meter max range
 disply adb device info in script when connected
 removed evolved
 add debug levels
-modularize login code 
+modularize login code
+minimize "imports"
