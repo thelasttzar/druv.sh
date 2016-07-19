@@ -179,7 +179,7 @@ def login_google(username, password):
     return r2.get('Auth') # access token
 
 def login_ptc(username, password):
-    print('[!] PTC User: %s' % username)
+    print('[+] PTC User: %s' % username)
     head = {'User-Agent': 'niantic'}
     r = SESSION.get(LOGIN_URL, headers=head)
     jdata = json.loads(r.content)
@@ -315,7 +315,6 @@ def scan():
         print("[*] Sounds: Enabled")
     else:
         sounds = False
-    print("")
 
     set_location(location)
 
@@ -325,11 +324,11 @@ def scan():
         else:
             access_token = login_ptc(username, password)
     else:
-        print("[X] Invalid auth service selected. Please use either 'google' or 'ptc' ")
+        print("[x] Invalid Authentication Service")
         return
 
     if access_token is None:
-        print('[-] Wrong username/password')
+        print('[-] Unable to Log In')
         sys.exit()
     print('[+] RPC Session Token: %s ...' % (access_token[:25]))
 
@@ -354,7 +353,7 @@ def scan():
         for curr in profile.profile.currency:
             print('[+] %s: %s' % (curr.type, curr.amount))
     else:
-        print('[-] Login Error')
+        print('[x] Login Error')
 
     pokemons = json.load(open('pokemon.json'))
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
@@ -418,7 +417,7 @@ def scan():
                     with open("history.json","a+") as file:
                         json.dump({'PokemonID':str(poke.pokemon.PokemonId), 'Pokemon Name':pokemons[poke.pokemon.PokemonId - 1]['Name'], "Coordinates":{"X":poke.Latitude, "Y":poke.Longitude}, "Timestamp":timestamp}, file, indent=4)
                 except:
-                    print("Log file could not be opened")
+                    print("Unable to Open Log File")
 
             if address:
                 try:
@@ -451,7 +450,7 @@ def scan():
                         adb.shell("am start -a android.intent.action.VIEW -d file://%s -t audio/wav" % soundfile)
                     #restore stdout 
                     sys.stdout=sys.__stdout__
-                    print("Teleporting you to (%s, %s)" % (poke.Latitude, poke.Longitude))
+                    print("Teleporting to (%s, %s)" % (poke.Latitude, poke.Longitude))
                 print("")
 
             elif evolved or evolved_verbose:
