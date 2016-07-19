@@ -295,22 +295,22 @@ def scan():
     else:
         alert = False
 
-    if address.lower() in ["yes", "true", "t", "1"]:
+    if address.lower() == "true":
         print("[*] Address Format: Enabled")
     else:
         address = False
 
-    if logging.lower() in ["yes", "true", "t", "1"]:
+    if logging.lower() == "true":
         print("[*] Logging: Enabled - history.json")
     else:
         logging = False
 
-    if teleport.lower() in ["yes", "true", "t", "1"]:
+    if teleport.lower() == "true":
         print("[*] Teleporting: Enabled")
     else:
         teleport = False
 
-    if sounds:
+    if sounds.lower() == "true":
         soundfile = config.get('Login1','soundfile')
         print("[*] Sounds: Enabled")
     else:
