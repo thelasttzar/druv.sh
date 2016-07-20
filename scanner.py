@@ -90,9 +90,7 @@ def load_config(account):
         print('[*] Audio file: %s' % soundfile)
 
     if open_app:
-        print('[*] Opening PGO app after teleporting')
-
-    print('')
+        print('[*] Auto-Launch Application: Enabled')
 
     config_dict = {}
     config_dict['username'] = username
