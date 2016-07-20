@@ -271,6 +271,12 @@ def scan(account):
     config = RawConfigParser()
     config.read('pokemon.cfg')
 
+    try:
+        config.options(account)
+    except:
+        print('[-] No settings found for that profile. Switching to default profile.')
+        account = ''
+
     if account in '':
         account = config.sections()[0]
     print('[*] Using settings for %s' % account)
@@ -357,6 +363,7 @@ def scan(account):
         payload = response.payload[0]
         profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
         profile.ParseFromString(payload)
+
         print('[+] Username: %s ' % profile.profile.username)
 
         creation_time = datetime.fromtimestamp(
