@@ -50,25 +50,7 @@ def set_location_coords(lat, long, alt):
     settings.COORDS_ALTITUDE = f2i(alt)
 
 
-def address_creator(poke):
-    try:
-        geolocator = Nominatim()
-        location = geolocator.reverse('%s, %s' % (poke.Latitude,
-                                                  poke.Longitude))
-    except:
-        try:
-            time.sleep(5)
-            geolocator = Nominatim()
-            location = geolocator.reverse('%s, %s' % (poke.Latitude,
-                                                      poke.Longitude))
-        except:
-            location = 'GeoLocator Connection Timed Out'
-    return location
-
-
-def scan(account):
-    settings.init()
-
+def load_config(account):
     print('')
 
     config = RawConfigParser()
@@ -83,7 +65,7 @@ def scan(account):
 
     if account in '':
         account = config.sections()[0]
-    print('[*] Using settings for %s' % account)
+    print('[*] Profile: %s' % account)
 
     # Login settings
     username = config.get(account, 'username')
@@ -99,11 +81,9 @@ def scan(account):
     logging = config.getboolean(account, 'logging')
     teleport = config.getboolean(account, 'teleport')
     sounds = config.getboolean(account, 'sounds')
+    open_app = config.getboolean(account, 'openapp')
 
-    if evolved:
-        print('[*] Tracking: Evolved Only')
-
-    if evolved_verbose:
+    if evolved or evolved_verbose:
         print('[*] Tracking: Evolved Only')
 
     if alerts is not None:
@@ -127,17 +107,100 @@ def scan(account):
 
     if teleport:
         print('[*] Teleporting: Enabled')
+        adb_devices()
 
     if sounds:
         soundfile = config.get(account, 'soundfile')
         print('[*] Sounds: Enabled')
         print('[*] Audio file: %s' % soundfile)
 
+    if open_app:
+        print('[*] Opening PGO app after teleporting')
+
     print('')
 
-    set_location(location)
+    config_dict = {}
+    config_dict['username'] = username
+    config_dict['password'] = password
+    config_dict['auth_service'] = auth_service
+    config_dict['location'] = location
+    config_dict['alerts'] = alerts
+    config_dict['alertlist'] = alertlist
+    config_dict['evolved'] = evolved
+    config_dict['evolved_verbose'] = evolved_verbose
+    config_dict['address'] = address
+    config_dict['logging'] = logging
+    config_dict['teleport'] = teleport
+    config_dict['sounds'] = sounds
+    config_dict['soundfile'] = soundfile
+    config_dict['open_app'] = open_app
 
-    api_endpoint, access_token, response = login(auth_service, username, password)
+    return config_dict
+
+
+def address_creator(poke):
+    try:
+        geolocator = Nominatim()
+        location = geolocator.reverse('%s, %s' % (poke.Latitude,
+                                                  poke.Longitude))
+    except:
+        try:
+            time.sleep(5)
+            geolocator = Nominatim()
+            location = geolocator.reverse('%s, %s' % (poke.Latitude,
+                                                      poke.Longitude))
+        except:
+            location = 'Could not connect to Geolocator'
+    return location
+
+
+def adb_devices():
+    # Stops the method from printing to stdout (No idea why it does this by default).
+    sys.stdout = open(os.devnull, 'w')
+    # Calls adb devices
+    cmd = adb.devices()
+    # Restore stdout
+    sys.stdout = sys.__stdout__
+
+    # Isolates ip/device id of android device connected
+    print('[*] Android device: %s' % cmd[1].replace('List of devices attached', '').replace('\n', '').replace('device', ''))
+    return
+
+
+def adb_teleport(poke):
+    # Stops the method from printing to stdout (No idea why it does this by default).
+    sys.stdout = open(os.devnull, 'w')
+
+    # Starts fakegps service to teleport you
+    adb.shell('am startservice -a com.incorporateapps.fakegps.ENGAGE --ef lat %s --ef lng %s' % (poke.Latitude,
+                                                                                                 poke.Longitude))
+
+    # Restore stdout
+    sys.stdout = sys.__stdout__
+    print('[!] Teleporting to (%s, %s)' % (poke.Latitude,
+                                           poke.Longitude))
+
+
+def adb_play_sound(soundfile):
+    try:
+        # Plays a sound
+        adb.shell('am start -a android.intent.action.VIEW -d file://%s -t audio/wav' % soundfile)
+    except:
+        pass
+
+
+def adb_open_pogo():
+    adb.shell('monkey -p com.nianticlabs.pokemongo -c android.intent.category.LAUNCHER 1')
+
+
+def scan(account):
+    settings.init()
+
+    config = load_config(account)
+
+    set_location(config['location'])
+
+    api_endpoint, access_token, response = login(config['auth_service'], config['username'], config['password'])
 
     pokemons = json.load(open('pokemon.json'))
     origin = LatLng.from_degrees(settings.FLOAT_LAT, settings.FLOAT_LONG)
@@ -153,7 +216,10 @@ def scan(account):
                     LatLng.from_degrees(settings.FLOAT_LAT, settings.FLOAT_LONG)).parent(15)
 
         for x in range(6):
-            h = heartbeat(auth_service, api_endpoint, access_token, response)
+            h = heartbeat(config['auth_service'],
+                          api_endpoint,
+                          access_token,
+                          response)
             if x == 5:
                 print('[-] Connection Terminated')
                 return
@@ -174,7 +240,7 @@ def scan(account):
             set_location_coords(latlng.lat().degrees,
                                 latlng.lng().degrees,
                                 0)  # Alt
-            hs.append(heartbeat(auth_service,
+            hs.append(heartbeat(config['auth_service'],
                                 api_endpoint,
                                 access_token,
                                 response))
@@ -194,7 +260,7 @@ def scan(account):
         except:
             continue
 
-        if evolved or evolved_verbose:
+        if config['evolved'] or config['evolved_verbose']:
             skipped_list = []
 
         for poke in visible:
@@ -211,7 +277,7 @@ def scan(account):
                                     poke.TimeTillHiddenMs / 1000,
                                     int(origin.get_distance(other).radians * 6366468.241830914),
                                     direction)
-            if logging:
+            if config['logging']:
                 timestamp = int(time.time())
                 try:
                     with open('history.json', 'a+') as file:
@@ -224,44 +290,29 @@ def scan(account):
                 except:
                     print('Unable to Open Log File')
 
-            if alerts and str(poke.pokemon.PokemonId) in alertlist:
+            if config['alerts'] and str(poke.pokemon.PokemonId) in config['alertlist']:
                 print('')
                 print('[+]    ==========================FOUND A %s============================' % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
                 print('[+]    ' + found_pokemon)
-                if address:
+                if config.address:
                     print('[+] Address: %s' % address_creator(poke))
                 print('[+]    ===================================================================')
 
                 # Code to teleport you to the target
-                if teleport:
-
-                    # stops the shitty method from printing to stdout.
-                    sys.stdout = open(os.devnull, 'w')
-
-                    # starts fakegps service to teleport you
-                    adb.shell('am startservice -a com.incorporateapps.fakegps.ENGAGE --ef lat %s --ef lng %s' % (poke.Latitude, poke.Longitude))
-                    if sounds:
-                        try:
-                            # Plays a sound
-                            adb.shell('am start -a android.intent.action.VIEW -d file://%s -t audio/wav' % soundfile)
-                        except:
-                            pass
-
-                    # Opens the app after 2 seconds
+                if config['teleport']:
+                    adb_teleport(poke)
+                if config['sounds']:
+                    adb_play_sound(config['soundfile'])
+                if config['open_app']:
                     time.sleep(2)
-                    adb.shell('monkey -p com.nianticlabs.pokemongo -c android.intent.category.LAUNCHER 1')
-
-                    # Restore stdout
-                    sys.stdout = sys.__stdout__
-                    print('Teleporting to (%s, %s)' % (poke.Latitude,
-                                                       poke.Longitude))
+                    adb_open_pogo()
                 print('')
 
-            elif evolved or evolved_verbose:
+            elif config['evolved'] or config['evolved_verbose']:
 
                 if str(poke.pokemon.PokemonId) in evolvedlist:
                     print(' - ' + found_pokemon)
-                    if address:
+                    if config['address']:
                         print(' - Address: %s' % address_creator(poke))
                     print('')
                 else:
@@ -269,15 +320,16 @@ def scan(account):
 
             else:
                 print(' - ' + found_pokemon)
-                if address:
+                if config['address']:
                     print(' - Address: %s' % address_creator(poke))
 
-        if evolved_verbose:
+        if config['evolved_verbose']:
             if not not skipped_list:  # If it is not empty
                 print_string = ''
                 for x in skipped_list:
                     print_string += x + ', '
                 print('[I] ' + print_string[:-2])
+
         walk = getNeighbors()
         next = LatLng.from_point(Cell(CellId(walk[2])).get_center())
         time.sleep(10)
