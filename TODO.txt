@@ -3,8 +3,5 @@ Fix Config to allow global variables:
 Use logging module for debugging
 add teleport speed limit
 add scan meter max range
-disply adb device info in script when connected
 removed evolved
 add debug levels
-modularize login code
-minimize "imports"
