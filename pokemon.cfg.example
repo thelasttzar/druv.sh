@@ -45,3 +45,5 @@ sounds=True
 
 ; The location of the sound file on your android device
 soundfile=/storage/emulated/0/Ring02.wav
+
+openapp=True
