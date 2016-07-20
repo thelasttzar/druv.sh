@@ -8,7 +8,7 @@ import sys
 from ConfigParser import RawConfigParser
 
 # Modularized code
-from login import login, heartbeat
+from login import login, heartbeat, getNeighbors
 import settings
 
 # Pypi packages
@@ -19,21 +19,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # Initialization
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-
-def getNeighbors():
-    origin = CellId.from_lat_lng(
-        LatLng.from_degrees(settings.FLOAT_LAT, settings.FLOAT_LONG)).parent(15)
-    walk = [origin.id()]
-    # 10 before and 10 after
-    next = origin.next()
-    prev = origin.prev()
-    for i in range(10):
-        walk.append(prev.id())
-        walk.append(next.id())
-        next = next.next()
-        prev = prev.prev()
-    return walk
 
 
 def f2i(float):
@@ -244,7 +229,7 @@ def scan(account):
                 print('[+]    ==========================FOUND A %s============================' % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
                 print('[+]    ' + found_pokemon)
                 if address:
-                    print('[+] Address: %s' % address_creator())
+                    print('[+] Address: %s' % address_creator(poke))
                 print('[+]    ===================================================================')
 
                 # Code to teleport you to the target
@@ -277,7 +262,7 @@ def scan(account):
                 if str(poke.pokemon.PokemonId) in evolvedlist:
                     print(' - ' + found_pokemon)
                     if address:
-                        print(' - Address: %s' % address_creator())
+                        print(' - Address: %s' % address_creator(poke))
                     print('')
                 else:
                     skipped_list.append(pokemons[poke.pokemon.PokemonId - 1]['Name'])
@@ -285,7 +270,7 @@ def scan(account):
             else:
                 print(' - ' + found_pokemon)
                 if address:
-                    print(' - Address: %s' % address_creator())
+                    print(' - Address: %s' % address_creator(poke))
 
         if evolved_verbose:
             if not not skipped_list:  # If it is not empty
