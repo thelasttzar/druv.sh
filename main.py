@@ -9,7 +9,7 @@ def main():
     if len(sys.argv) == 2:
         account = sys.argv[1]
     elif len(sys.argv) == 1:
-        account = 'Login1'
+        account = ''
     else:
         print("[X] Invalid commands sent.")
         print("[X] Please use either ./main.py or ./main.py profile")
