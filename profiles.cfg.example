@@ -2,15 +2,14 @@
 # Login information
 # 
 # auth_service must be either google or ptc
-#
 [Login1]
 username=testuser
 password=testpass
 auth_service=ptc
 location=central park, new york
-#
+
 # Application settings
-#
+
 ; Alerts set up extra notifications around the listed pokemon IDs. This should be a comma seperated list without spaces
 ; example: alert=147,148,149 will find dratinis, dragonairs, and dragonites
 alert=
@@ -31,9 +30,7 @@ address=True
 ; Sets up logging to the file "history.json"
 logging=True
 
-#
 # The following settings require you to be connected to one device via adb
-#
 
 ; Teleport allows you to instantly teleport to the location of pokemon on your alert list
 ; Connect your device to adb and do not have the game open when waiting to teleport
@@ -46,5 +43,5 @@ sounds=True
 ; The location of the sound file on your android device
 soundfile=/storage/emulated/0/Ring02.wav
 
-; Opens PokemonGo on connected ADB Device
+; This will open the PGO app for you 2 seconds after the sound file plays
 openapp=True
