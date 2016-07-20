@@ -268,7 +268,7 @@ def scan(account):
                 print('')
                 print('[+]    ==========================FOUND A %s============================' % pokemons[poke.pokemon.PokemonId - 1]['Name'].upper())
                 print('[+]    ' + found_pokemon)
-                if config.address:
+                if config['address']:
                     print('[+] Address: %s' % address_creator(poke))
                 print('[+]    ===================================================================')
 
