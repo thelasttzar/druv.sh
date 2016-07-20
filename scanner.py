@@ -132,7 +132,8 @@ def load_config(account):
     config_dict['logging'] = logging
     config_dict['teleport'] = teleport
     config_dict['sounds'] = sounds
-    config_dict['soundfile'] = soundfile
+    if sounds:
+        config_dict['soundfile'] = soundfile
     config_dict['open_app'] = open_app
 
     return config_dict
